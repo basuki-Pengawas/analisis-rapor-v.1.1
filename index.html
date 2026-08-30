@@ -1,0 +1,1355 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Analisis Rapor Pendidikan</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<style>
+
+.btn-logout {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #dc2626;
+  color: #ffffff;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.btn-logout:hover {
+  background-color: #b91c1c;
+}
+
+
+  :root {
+    --maroon-dark: #3d1408;
+    --maroon-main: #7c2d12;
+    --maroon-light: #9a3412;
+    --gold: #d4a94e;
+    --gold-light: #fde8d0;
+    --bg-gray: #f8fafc;
+    --text-main: #1e293b;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+  body { display: flex; height: 100vh; overflow: hidden; background-color: var(--bg-gray); color: var(--text-main); }
+
+  /* ====== SIDEBAR ====== */
+  .sidebar {
+    width: 260px; background: var(--maroon-dark); color: white; display: flex; flex-direction: column;
+    border-right: 2px solid var(--gold); z-index: 100; flex-shrink: 0;
+  }
+  .sidebar-header { padding: 24px 20px; border-bottom: 1px solid rgba(212, 169, 78, 0.3); }
+  .sidebar-header h2 { font-size: 18px; color: var(--gold); line-height: 1.4; }
+  .sidebar-header p { font-size: 11px; color: #94a3b8; margin-top: 6px; }
+  .menu-list { flex: 1; overflow-y: auto; padding: 16px 0; list-style: none; }
+  .menu-item {
+    padding: 12px 20px; cursor: pointer; display: flex; align-items: center; gap: 12px;
+    font-size: 14px; border-left: 4px solid transparent; transition: all 0.2s; color: #e2e8f0;
+  }
+  .menu-item:hover { background: rgba(255,255,255,0.05); color: var(--gold-light); }
+  .menu-item.active { background: rgba(212, 169, 78, 0.15); border-left-color: var(--gold); color: var(--gold); font-weight: 600; }
+  .menu-icon { font-size: 18px; width: 24px; text-align: center; }
+  .sidebar-footer { padding: 16px 20px; border-top: 1px solid rgba(212, 169, 78, 0.3); font-size: 18px; color: #94a3b8; 
+  text-align: center; }
+
+  /* ====== MAIN ====== */
+  .main-content {
+    flex: 1; display: flex; flex-direction: column; overflow: hidden;
+    background: linear-gradient(160deg, #5b1f12 0%, #7c2d12 45%, #9a3412 100%);
+  }
+  .content-header { padding: 20px 28px; color: var(--gold); border-bottom: 1px solid rgba(212,169,78,0.2); }
+  .content-header h1 { font-size: 22px; }
+  .content-header p { font-size: 13px; color: var(--gold-light); margin-top: 4px; }
+  .content-body { flex: 1; overflow-y: auto; padding: 24px 28px; }
+
+  /* ====== SECTIONS ====== */
+  .content-section { display: none; }
+  .content-section.active { display: block; }
+
+  /* ====== DASHBOARD ====== */
+  .dash-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+  .dash-card { background: #fff; border-radius: 12px; padding: 20px; border: 1px solid #e2e8f0; }
+  .dash-card h3 { color: var(--maroon-main); font-size: 16px; margin-bottom: 10px; }
+  .dash-card p { color: #475569; font-size: 14px; line-height: 1.7; }
+  .dash-card ul { margin: 8px 0 0 18px; color: #475569; font-size: 14px; line-height: 1.8; }
+
+  /* ====== ANALISIS ====== */
+  #drop { display: block; border: 2px dashed #94a3b8; border-radius: 14px; background: #fff;
+          padding: 48px 20px; text-align: center; cursor: pointer; transition: .15s; }
+  #drop.drag { border-color: #3b82f6; background: #eff6ff; }
+  #drop p.main { color: #475569; font-size: 15px; }
+  #drop p.hint { color: #94a3b8; font-size: 12px; margin-top: 8px; }
+  .actions { margin-top: 16px; display: flex; gap: 10px; flex-wrap: wrap; }
+  .btn { border: none; border-radius: 10px; padding: 10px 20px; font-size: 14px; font-weight: 600; cursor: pointer; }
+  .btn-primary { background: #2563eb; color: #fff; }
+  .btn-primary:hover { background: #1d4ed8; }
+  .btn-primary:disabled { opacity: .5; cursor: wait; }
+  .btn-secondary { background: #fff; color: #475569; border: 1px solid #cbd5e1; }
+  .btn-maroon { background: var(--maroon-main); color: #fff; }
+  .btn-red { background: #dc2626; color: #fff; }
+  .btn-purple { background: #3730a3; color: #fff; }
+
+  .error { margin-top: 14px; background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca;
+           border-radius: 10px; padding: 10px 14px; font-size: 14px; }
+  .loading { margin-top: 24px; text-align: center; color: #64748b; font-size: 14px; }
+
+  /* ====== CARDS ====== */
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-top: 20px; }
+  .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px; }
+  .card small { color: #64748b; font-size: 12px; }
+  .card b { display: block; font-size: 22px; margin-top: 4px; }
+  .naik { color: #16a34a; }
+  .turun { color: #dc2626; }
+
+  /* ====== TABS ====== */
+  .tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
+  .tab { border: 1px solid; border-radius: 10px; padding: 8px 16px; font-size: 13px; font-weight: 600; cursor: pointer; }
+  .tab.active { outline: 3px solid #cbd5e1; outline-offset: 2px; }
+  .tab-capaian { background: #e0f2fe; color: #075985; border-color: #7dd3fc; }
+  .tab-baik { background: #dcfce7; color: #166534; border-color: #86efac; }
+  .tab-sedang { background: #fef3c7; color: #92400e; border-color: #fcd34d; }
+  .tab-kurang { background: #fee2e2; color: #991b1b; border-color: #fca5a5; }
+  .tab-kesimpulan { background: #fdf3d8; color: #7c2d12; border-color: #d4a94e; }
+  .tab-grafik { background: #ede9fe; color: #5b21b6; border-color: #c4b5fd; }
+
+/* ====== RIWAYAT ====== */
+.riwayat-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: box-shadow 0.2s;
+}
+.riwayat-card:hover {
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+}
+.riwayat-info h4 {
+  color: #1e293b;
+  font-size: 15px;
+  margin-bottom: 4px;
+}
+.riwayat-info p {
+  color: #64748b;
+  font-size: 13px;
+}
+.riwayat-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-right: 6px;
+}
+.riwayat-badge.baik { background: #dcfce7; color: #16a34a; }
+.riwayat-badge.sedang { background: #fef9c3; color: #ca8a04; }
+.riwayat-badge.kurang { background: #fee2e2; color: #dc2626; }
+.riwayat-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.btn-sm {
+  padding: 6px 14px;
+  font-size: 13px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background 0.2s;
+}
+.btn-view { background: #2563eb; color: #fff; }
+.btn-view:hover { background: #1d4ed8; }
+.btn-delete { background: #fee2e2; color: #dc2626; }
+.btn-delete:hover { background: #fecaca; }
+.empty-riwayat {
+  text-align: center;
+  padding: 60px 20px;
+  color: #94a3b8;
+}
+.empty-riwayat .icon { font-size: 48px; margin-bottom: 12px; }
+.riwayat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.riwayat-header h2 { color: #fde8d0; font-size: 18px; }
+.btn-refresh {
+  background: rgba(212,169,78,0.2);
+  color: var(--gold);
+  border: 1px solid rgba(212,169,78,0.4);
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+}
+.btn-refresh:hover { background: rgba(212,169,78,0.3); }
+
+  /* ====== TABLE ====== */
+  .table-wrap { margin-top: 14px; background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; overflow-x: auto; }
+  table { width: 100%; min-width: 700px; border-collapse: collapse; font-size: 14px; }
+  th { background: #f1f5f9; color: #475569; text-align: left; padding: 12px 14px; font-weight: 600; white-space: nowrap; }
+  td { padding: 11px 14px; border-top: 1px solid #f1f5f9; vertical-align: top; }
+  tr:hover td { background: #f8fafc; }
+  tr.child-row td { background: #f8fafc; color: #475569; font-size: 13px; }
+  .empty { text-align: center; color: #94a3b8; padding: 40px; font-size: 14px; }
+
+  /* ====== KESIMPULAN ====== */
+  .kesimpulan-box { margin-top: 20px; background: #fff; border: 1px solid #e2e8f0; border-left: 6px solid var(--gold);
+                    border-radius: 12px; padding: 18px 20px; }
+  .kesimpulan-box h3 { font-size: 16px; color: var(--maroon-main); margin-bottom: 10px; }
+  .k-par { font-size: 15px; line-height: 1.8; color: #334155; text-align: justify; margin: 0; }
+  .hl-kurang { background: #fecdd3; color: #9f1239; font-weight: 600; padding: 1px 5px; border-radius: 4px; }
+
+  /* ====== MATRIKS PRIORITAS ====== */
+  .prioritas-wrap { margin-top: 24px; background: #fff; border: 1px solid #fca5a5; border-left: 6px solid #ef4444;
+                    border-radius: 12px; padding: 18px 20px; }
+  .prioritas-wrap h3 { font-size: 16px; color: #991b1b; margin-bottom: 12px; }
+  .prioritas-item { background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 12px; margin-bottom: 10px; }
+  .prioritas-item-title { font-weight: 600; color: #7f1d1d; font-size: 14px; margin-bottom: 4px; }
+  .prioritas-item-score { font-size: 13px; color: #991b1b; }
+
+  /* ====== GRAFIK ====== */
+  .chart-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+}
+
+.chart-box {
+    width: 100%;
+    background: #ffffff;
+    padding: 20px;
+    border-radius: 12px;
+    box-sizing: border-box;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+/* Grafik ketiga berada di bawah dan tepat di tengah */
+.chart-box-bottom {
+    grid-column: 1 / 3;
+    width: 100%;
+    max-width: 800px;
+    justify-self: center;
+}
+
+  /* ====== REKOMENDASI ====== */
+  .rekom-item { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px;
+                margin-bottom: 12px; border-left: 4px solid #d97706; }
+  .rekom-item h4 { color: #92400e; margin-bottom: 6px; font-size: 14px; }
+  .rekom-item p { color: #475569; font-size: 13px; line-height: 1.6; margin: 4px 0; }
+  .rekom-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; margin-bottom: 6px; }
+  .rekom-badge.kurang { background: #fee2e2; color: #991b1b; }
+
+   /* ====== PERBANDINGAN ====== */
+  .drop-multi { display:block; margin-top:12px; border:2px dashed #94a3b8; border-radius:14px;
+                background:#fff; padding:32px 20px; text-align:center; cursor:pointer; }
+  .drop-multi.drag { border-color:#3b82f6; background:#eff6ff; }
+  .drop-multi p { pointer-events:none; }
+  .compare-summary { background:#f0f9ff; border:1px solid #bae6fd; border-radius:10px;
+                     padding:14px; margin-bottom:14px; font-size:14px; color:#0c4a6e; }
+
+/* tambahan */
+/* ====== LOGIN SCREEN ====== */
+.login-overlay {
+  position: fixed; inset: 0; top: 0; left: 0; right: 0; bottom: 0;
+  z-index: 9999; display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(160deg, #fff 10%, #7c2d12 60%, #64748b 90%);
+}
+.login-overlay.hide { display: none !important; }
+.login-box {
+  background: #fff; border-radius: 16px; padding: 40px 36px; width: 420px;
+  max-width: 90vw; box-shadow: 0 8px 32px rgba(0,0,0,.4); text-align: center;
+}
+.login-box h2 { color: #7c2d12; font-size: 22px; margin-bottom: 6px; }
+.login-box p { color: #64748b; font-size: 13px; margin-bottom: 24px; }
+.login-box input {
+  width: 100%; padding: 12px 16px; border: 2px solid #cbd5e1;
+  border-radius: 10px; font-size: 15px; outline: none; text-align: center;
+  margin-bottom: 16px;
+}
+.login-box input:focus { border-color: #2563eb; }
+.login-btn {
+  width: 100%; padding: 12px; border: none; border-radius: 10px;
+  background: #7c2d12; color: #fde68a; font-size: 16px;
+  font-weight: 700; cursor: pointer;
+}
+.login-btn:hover { background: #9a3412; }
+/* ====== FIXED HEADER ====== */
+.fixed-header {
+  background: #fff; border-bottom: 1px solid #e2e8f0; padding: 14px 28px;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.fixed-header h2 { font-size: 16px; color: var(--maroon-main); margin: 0; }
+.welcome-badge {
+  background: rgba(212,169,78,0.15); color: var(--gold); font-size: 12px;
+  padding: 4px 12px; border-radius: 8px; font-weight: 600;
+}
+/* tutup tambahan */
+
+/* Class utilitas untuk menyembunyikan elemen */
+.hidden {
+  display: none !important;
+}
+
+/* Sembunyikan sidebar & main-content secara default */
+.sidebar,
+.main-content {
+  display: none;
+}
+
+/* Tampilkan layout utama setelah login berhasil */
+body.logged-in .sidebar {
+  display: flex;
+}
+
+body.logged-in .main-content {
+  display: flex;
+}
+
+</style>
+</head>
+<!-- ====== Tambahan ====== -->
+<body>
+<!-- ====== LOGIN SCREEN ====== -->
+<div class="login-overlay" id="loginScreen">
+  <div class="login-box">
+    <div style="font-size:48px;margin-bottom:8px;"><img src="https://upload.wikimedia.org/wikipedia/commons/f/f0/Lambang_Kabupaten_Kampar.png?utm_source=commons.wikimedia.org&utm_campaign=index&utm_content=original" alt="Logo Kampar" style="width:80px;height:80px; solid #d4a94e;padding:2px;" /></div>
+    <h2 style="color:#7c2d12;font-size:25px;margin-bottom:4px;">Analisis Rapor Pendidikan</h2>
+    <p style="color:#64748b;font-size:13px;margin-bottom:24px;">Masukkan nama sekolah untuk memulai</p>
+    <input type="text" id="loginNamaSekolah"
+      placeholder="Contoh: UPT SD NEGERI 003 LUBUK SAKAT"
+      onkeydown="if(event.key==='Enter')doLogin()" />
+    <button class="login-btn" onclick="doLogin()">🔓 Masuk</button>
+	<h3 style="color:#7c2d12;font-size:15px;margin-bottom:4px;">Persembahan Pengawas Digital</h3>
+	<p style="color:#64748b;font-size:13px;margin-bottom:24px;">Kabupaten Kampar</p>
+  </div>
+</div>
+<!-- ====== END LOGIN SCREEN ====== -->
+
+
+<!-- ====== SIDEBAR ====== -->
+<aside class="sidebar">
+<div class="sidebar-header">
+   <div style="display:flex;align-items:center;gap:12px;">
+    <img src="https://upload.wikimedia.org/wikipedia/commons/f/f0/Lambang_Kabupaten_Kampar.png?utm_source=commons.wikimedia.org&utm_campaign=index&utm_content=original" alt="Logo Kampar" style="width:52px;height:52px;border-radius:50%;border:2px solid #d4a94e;padding:2px;" />
+    <div>
+    <h2 style="margin:0;font-size:15px;">Analisis Rapor Pendidikan</h2>
+    <p style="margin:2px 0 0;font-size:11px;">Versi 1.0</p>
+  </div>
+  </div>
+  </div>
+  <ul class="menu-list">
+    <li class="menu-item active" onclick="switchMenu('dashboard')">
+      <span class="menu-icon">🏠</span> Dashboard
+    </li>
+    <li class="menu-item" onclick="switchMenu('analisis')">
+      <span class="menu-icon">📋</span> Analisis Rapor
+    </li>
+    <li class="menu-item" onclick="switchMenu('kesimpulan')">
+      <span class="menu-icon">📝</span> Kesimpulan
+    </li>
+   <li class="menu-item" onclick="switchMenu('grafik')"> 
+      <span class="menu-icon">📊</span> Grafik
+    </li> 
+    <li class="menu-item" onclick="switchMenu('rekomendasi')">
+      <span class="menu-icon">💡</span> Rekomendasi
+    </li>
+    <li class="menu-item" onclick="switchMenu('perbandingan')">
+      <span class="menu-icon">🏫</span> Perbandingan
+    </li>
+	<li class="menu-item" onclick="switchMenu('riwayat')">
+      <span class="menu-icon">📂</span> Riwayat
+    </li>
+  </ul>
+  
+  <div class="sidebar-footer">
+  <div id="welcomeText" style="color:#fde68a;font-size:13px;margin-bottom:6px;"></div>
+  @2026 Basuki, S.Kom. Pengawas TK/SD
+</div>
+
+</aside>
+
+<!-- ====== MAIN CONTENT ====== -->
+<div class="main-content">
+  <div class="content-header">
+    <h1 id="pageTitle"> Dashboard</h1>
+    <p id="pageDesc">Selamat datang di Aplikasi Analisis Rapor Pendidikan</p>
+  </div>
+  <div class="content-body">
+  
+<!-- ====== tutup tambahan ====== -->
+<!-- FIXED HEADER - tidak berubah saat ganti menu -->
+<div class="fixed-header" id="fixedHeader" style="display:none;">
+  <h2 id="fixedHeaderTitle">📊 Dashboard</h2>
+  <span class="welcome-badge" id="fixedWelcome"></span>
+  <!-- Tombol Logout pada Header / Navbar Utama -->
+<div class="user-actions" style="display: flex; align-items: center; gap: 10px;">
+  <button id="btnLogout" onclick="logout()" class="btn-logout">
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+      <polyline points="16 17 21 12 16 7"></polyline>
+      <line x1="21" y1="12" x2="9" y2="12"></line>
+    </svg>
+    <span>Keluar</span>
+  </button>
+</div>
+<!-- Tombol Logout -->
+  </div>
+
+    <!-- ====== SECTION: DASHBOARD ====== -->
+    <section id="sec-dashboard" class="content-section active">
+     <div class="dash-card">
+        <div class="dash-card">
+    <h3 style="color:#475569;font-size:20px;">📌 Tentang Aplikasi</h3>
+    <p style="color:#475569;font-size:15px;">
+        Aplikasi ini membantu menganalisis Rapor Pendidikan dari file unduhan Kemendikdasmen.
+        Data akan dikelompokkan berdasarkan predikat capaian:
+        
+        <b style="color:#16a34a;">Baik</b>,
+        <b style="color:#f97316;">Sedang</b>, dan
+        <b style="color:#dc2626;">Kurang</b>.
+    </p>
+</div>
+		
+			
+        <div class="dash-card">
+          <h3 style="color:#475569;font-size:20px;">🔧 Fitur Utama</h3>
+          <ul style="color:#475569;font-size:15px;">
+            <li>Upload file .docx, .pdf, .xlsx/.xls</li>
+            <li>Analisis otomatis per kategori</li>
+            <li>Kesimpulan naratif + Matriks Prioritas</li>
+            <li>Grafik visual (Pie, Bar, Dimensi)</li>
+            <li>Rekomendasi tindak lanjut PBD/ARKAS</li>
+            <li>Perbandingan multi-sekolah</li>
+            <li>Export ke Excel dan PDF</li>
+          </ul>
+        </div>
+        <div class="dash-card">
+          <h3 style="color:#475569;font-size:20px;">📝 Cara Penggunaan</h3>
+          <p style="color:#475569;font-size:15px;"><b>1.</b> Klik menu <b>📋 Analisis Rapor</b> di sidebar</p>
+          <p style="color:#475569;font-size:15px;"><b>2.</b> Upload file Rapor Pendidikan</p>
+          <p style="color:#475569;font-size:15px;"><b>3.</b> Klik tombol <b>Analisis Sekarang</b></p>
+          <p style="color:#475569;font-size:15px;"><b>4.</b> Lihat hasil di tab Capaian/Baik/Sedang/Kurang</p>
+          <p style="color:#475569;font-size:15px;"><b>5.</b> Cek Kesimpulan, Grafik, dan Rekomendasi</p>
+        </div>
+        <div class="dash-card">
+          <h3 style="color:#475569;font-size:20px;">🏫 Perbandingan Multi-Sekolah</h3>
+          <p style="color:#475569;font-size:15px;">Upload 2+ file rapor sekaligus untuk membandingkan rata-rata skor antar sekolah. Sekolah dengan skor 3 terendah akan di-highlight <span style="color:#dc2626;font-weight:600">merah</span>, dan 3 tertinggi di-highlight <span style="color:#16a34a;font-weight:600">hijau</span>.</p>
+        </div>
+      </div>
+    </section>
+    <!-- ====== SECTION: RIWAYAT ====== -->
+    <section id="sec-riwayat" class="content-section">
+      <div class="riwayat-header">
+        <h2>📂 Riwayat Analisis</h2>
+        <button class="btn-refresh" onclick="loadHistory()">🔄 Muat Ulang</button>
+      </div>
+      <div id="riwayatList">
+        <div class="empty-riwayat">
+          <div class="icon">📭</div>
+          <p>Belum ada riwayat analisis.</p>
+          <p style="font-size:13px;margin-top:8px;">Mulai dengan mengupload file rapor di menu <b>Analisis Rapor</b>.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====== SECTION: ANALISIS ====== -->
+    <section id="sec-analisis" class="content-section">
+      <label for="fileInput" id="drop">
+        <p class="main" id="dropText">📄 Seret &amp; letakkan file di sini, atau klik untuk memilih</p>
+        <p class="hint">Mendukung .docx, .pdf, .xlsx, .xls</p>
+      </label>
+      <input type="file" id="fileInput" accept=".docx,.pdf,.xlsx,.xls" hidden />
+
+      <div class="actions">
+        <button class="btn btn-primary" id="btnAnalyze">🔍 Analisis Sekarang</button>
+        <button class="btn btn-secondary" id="btnReset">Batal</button>
+        <button class="btn btn-green" id="btnExport" style="display:none">⬇ Export Excel</button>
+        <button class="btn btn-red" id="btnPDF" style="display:none">📄 Export PDF</button>
+      </div>
+
+      <div id="error" class="error" hidden></div>
+      <div id="loading" class="loading" hidden>⏳ Memproses file...</div>
+
+      <div id="resultsArea" hidden>
+        <div class="cards" id="cards"></div>
+        <div class="tabs" id="tabs"></div>
+        <div class="table-wrap" id="tableWrap"></div>
+      </div>
+    </section>
+
+    <!-- ====== SECTION: KESIMPULAN ====== -->
+    <section id="sec-kesimpulan" class="content-section">
+      <div class="kesimpulan-box" id="kesimpulanBox">
+        <h3>📝 Kesimpulan Analisis</h3>
+        <div id="kesimpulanList"><div class="empty">Upload dan analisis rapor terlebih dahulu.</div></div>
+      </div>
+      <div id="prioritasWrap" style="margin-top:20px"></div>
+    </section>
+
+    <!-- ====== SECTION: GRAFIK ====== -->
+    <section id="sec-grafik" class="content-section">
+    <div id="grafikWrap">
+
+        <div class="chart-grid">
+
+            <!-- Grafik 1 -->
+            <div class="chart-box">
+                <h3>🍩 Distribusi Kategori</h3>
+                <canvas id="chartPie" style="max-height:300px"></canvas>
+            </div>
+
+            <!-- Grafik 2 -->
+            <div class="chart-box">
+                <h3>📊 Rata-rata Skor per Dimensi (A-E)</h3>
+                <canvas id="chartDimensi" style="max-height:300px"></canvas>
+            </div>
+
+            <!-- Grafik 3 di bawah dan rata tengah -->
+            <div class="chart-box chart-box-bottom">
+                <h3>📊 Skor per Indikator Utama</h3>
+                <canvas id="chartBar"></canvas>
+            </div>
+
+        </div>
+
+    </div>
+</section>
+
+    <!-- ====== SECTION: REKOMENDASI ====== -->
+    <section id="sec-rekomendasi" class="content-section">
+	
+  <!-- Tombol Aksi Export khusus Rekomendasi -->
+  <div style="margin-top: 10px; display: flex; justify-content: flex-end; gap: 10px;">
+    <button class="btn btn-RED" onclick="exportRekomendasiExcel()">⬇ Export Excel</button>
+    <button class="btn btn-red" onclick="exportRekomendasiPDF()">📄 Export PDF</button>
+</div> 
+
+
+  
+  <div id="rekomendasiContent">
+    <div class="empty">Upload dan analisis rapor terlebih dahulu untuk melihat rekomendasi.</div>
+  </div> 
+</section>
+
+   <!-- ====== SECTION PERBANDINGAN ====== -->
+<section id="sec-perbandingan" class="content-section">
+  <h2 style="color:#fde68a;margin-bottom:12px;">🏫 Perbandingan Multi-Sekolah</h2>
+  <p style="color:#e2e8f0;margin-bottom:16px;font-size:14px;">Upload 2+ file rapor untuk membandingkan skor antar sekolah</p>
+  
+  <label for="fileMulti" id="dropMulti" class="drop-multi">
+    <p style="color:#475569;font-size:15px;">📄 Seret &amp; letakkan 2+ file untuk perbandingan</p>
+    <p style="color:#94a3b8;font-size:12px;margin-top:6px;">Pilih beberapa file sekaligus (tahan Ctrl saat memilih)</p>
+  </label>
+  <input type="file" id="fileMulti" accept=".docx,.pdf,.xlsx,.xls" multiple hidden />
+  
+  <div style="margin-top:12px;display:flex;gap:10px;">
+    <button id="btnCompare" style="background:#3730a3;color:#fff;border:none;border-radius:10px;padding:10px 20px;font-size:14px;font-weight:600;cursor:pointer;">🔍 Bandingkan Sekarang</button>
+    <span id="fileMultiLabel" style="color:#94a3b8;font-size:13px;line-height:40px;"></span>
+  </div>
+  <div id="compareResult" style="margin-top:16px;"></div>
+</section>
+
+
+  </div>
+</div>
+
+<script>
+// ============ tambahan ============
+
+// ============ RIWAYAT (SQLite) ============
+
+function loadHistory() {
+  fetch("/api/history")
+    .then(function(res) {
+      if (!res.ok) {
+        throw new Error("HTTP error! Status: " + res.status);
+      }
+      return res.json();
+    })
+    .then(function(data) {
+      renderHistoryList(data);
+    })
+    .catch(function(err) {
+      console.error("Gagal memuat riwayat:", err);
+      document.getElementById("riwayatList").innerHTML =
+        '<div class="empty-riwayat"><div class="icon">⚠️</div><p>Gagal memuat riwayat. Pastikan server backend (main.py) sudah berjalan.</p></div>';
+    });
+}
+
+function renderHistoryList(data) {
+  var container = document.getElementById("riwayatList");
+  
+  if (!data || data.length === 0) {
+    container.innerHTML =
+      '<div class="empty-riwayat">' +
+        '<div class="icon">📭</div>' +
+        '<p>Belum ada riwayat analisis.</p>' +
+        '<p style="font-size:13px;margin-top:8px;">Mulai dengan mengupload file rapor di menu <b>Analisis Rapor</b>.</p>' +
+      '</div>';
+    return;
+  }
+
+  var html = "";
+  for (var i = 0; i < data.length; i++) {
+    var r = data[i];
+    var tanggal = r.created_at ? new Date(r.created_at).toLocaleDateString("id-ID", {
+      day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit"
+    }) : "-";
+    
+    var badges = "";
+    if (r.jumlah_baik > 0) badges += '<span class="riwayat-badge baik">✅ Baik: ' + r.jumlah_baik + '</span>';
+    if (r.jumlah_sedang > 0) badges += '<span class="riwayat-badge sedang">⚠️ Sedang: ' + r.jumlah_sedang + '</span>';
+    if (r.jumlah_kurang > 0) badges += '<span class="riwayat-badge kurang">🔴 Kurang: ' + r.jumlah_kurang + '</span>';
+
+    html += '<div class="riwayat-card" id="riwayat-' + r.id + '">' +
+      '<div class="riwayat-info">' +
+        '<h4>🏫 ' + escapeHtml(r.nama_sekolah) + ' — Tahun ' + escapeHtml(r.tahun || '-') + '</h4>' +
+        '<p>📄 ' + escapeHtml(r.filename || '-') + ' &nbsp;|&nbsp; 📅 ' + tanggal + '</p>' +
+        '<p style="margin-top:6px;">' +
+          '📊 Total: <b>' + (r.total_indikator || 0) + '</b> indikator &nbsp;|&nbsp; ' +
+          '📈 Rata-rata: <b>' + (r.rata_rata_skor ? r.rata_rata_skor.toFixed(2) : '-') + '</b> &nbsp;|&nbsp; ' +
+          '⬆️ Naik: <b>' + (r.indikator_naik || 0) + '</b> &nbsp;|&nbsp; ' +
+          '⬇️ Turun: <b>' + (r.indikator_turun || 0) + '</b>' +
+        '</p>' +
+        '<p style="margin-top:6px;">' + badges + '</p>' +
+      '</div>' +
+      '<div class="riwayat-actions">' +
+        '<button class="btn-sm btn-view" onclick="viewHistory(' + r.id + ')">👁️ Lihat</button>' +
+        '<button class="btn-sm btn-delete" onclick="deleteHistory(' + r.id + ')">🗑️ Hapus</button>' +
+      '</div>' +
+    '</div>';
+  }
+  container.innerHTML = html;
+}
+
+function viewHistory(id) {
+  fetch("/api/history/" + id)
+    .then(function(res) { return res.json(); })
+    .then(function(resData) {
+      if (resData.data) {
+        currentResult = resData.data;
+        renderAnalisis();
+        switchMenu('analisis');
+      } else {
+        alert("Data detail tidak ditemukan.");
+      }
+    })
+    .catch(function(err) {
+      console.error("Gagal memuat detail:", err);
+      alert("Gagal memuat detail riwayat.");
+    });
+}
+
+function deleteHistory(id) {
+  if (!confirm("Yakin ingin menghapus riwayat ini?")) return;
+  
+  fetch("/api/history/" + id, { method: "DELETE" })
+    .then(function(res) { return res.json(); })
+    .then(function() {
+      // Animasi fade out lalu muat ulang
+      var el = document.getElementById("riwayat-" + id);
+      if (el) {
+        el.style.transition = "opacity 0.3s, transform 0.3s";
+        el.style.opacity = "0";
+        el.style.transform = "translateX(20px)";
+        setTimeout(function() { loadHistory(); }, 300);
+      } else {
+        loadHistory();
+      }
+    })
+    .catch(function(err) {
+      console.error("Gagal menghapus:", err);
+      alert("Gagal menghapus riwayat.");
+    });
+}
+
+function escapeHtml(str) {
+  var div = document.createElement("div");
+  div.appendChild(document.createTextNode(str));
+  return div.innerHTML;
+}
+
+
+var namaSekolahLogin = "";
+
+function doLogin() {
+  var input = document.getElementById("loginNamaSekolah");
+  var val = input.value.trim();
+  
+  if (!val) {
+    input.style.borderColor = "#dc2626";
+    input.placeholder = "⚠️ Nama sekolah harus diisi!";
+    return;
+  }
+  
+  namaSekolahLogin = val;
+  
+  // Sembunyikan layar login
+  document.getElementById("loginScreen").classList.add("hide");
+  
+  // Tambahkan class ke body untuk menampilkan sidebar & main content
+  document.body.classList.add("logged-in");
+  
+  // Tampilkan fixed header jika diperlukan
+  document.getElementById("fixedHeader").style.display = "flex";
+  document.getElementById("fixedWelcome").textContent = "Selamat Datang, " + val;
+}
+// ============ tutuptambahan ============
+
+// ====== GLOBAL STATE ======
+var API_URL = "/api/analyze";
+var ALLOWED = [".docx", ".pdf", ".xlsx", ".xls"];
+var file = null;
+var currentResult = null;
+var chartInstances = {};
+var currentTab = "capaian";
+
+// ====== MENU NAVIGATION ======
+function switchMenu(menuId) {
+  // Hide all sections
+  var sections = document.querySelectorAll('.content-section');
+  for (var i = 0; i < sections.length; i++) sections[i].classList.remove('active');
+
+  // Show target section
+  var target = document.getElementById('sec-' + menuId);
+  if (target) target.classList.add('active');
+
+  // Update menu active
+  var menuItems = document.querySelectorAll('.menu-item');
+  for (var j = 0; j < menuItems.length; j++) {
+    menuItems[j].classList.remove('active');
+    var onclickAttr = menuItems[j].getAttribute('onclick') || '';
+    if (onclickAttr.indexOf(menuId) !== -1) menuItems[j].classList.add('active');
+	
+	// tambahan
+var menuTitles = {
+  dashboard: "📊 Dashboard",
+  analisis: "📋 Analisis Rapor Pendidikan",
+  kesimpulan: "📝 Kesimpulan & Prioritas",
+  grafik: "📊 Grafik Analisis",
+  rekomendasi: "💡 Rekomendasi Tindak Lanjut",
+  rktarkas: "📝 Editor RKT/ARKAS",
+  perbandingan: "🏫 Perbandingan Multi-Sekolah",
+  riwayat: "📂 Riwayat Analisis"
+};
+document.getElementById("fixedHeaderTitle").textContent = menuTitles[menuId] || "📊 Dashboard";
+// tutup Tambahan
+  }
+
+  // Update header
+  var titles = {
+  dashboard: ['🏠 Dashboard', 'Selamat datang di Aplikasi Analisis Rapor Pendidikan'],
+  analisis: ['📋 Analisis Rapor', 'Upload file rapor untuk dianalisis'],
+  kesimpulan: ['📝 Kesimpulan', 'Kesimpulan analisis dan matriks prioritas'],
+  grafik: ['📊 Grafik', 'Visualisasi data analisis rapor'],
+  rekomendasi: ['💡 Rekomendasi', 'Saran tindak lanjut untuk indikator Kurang'],
+  perbandingan: ['🏫 Perbandingan', 'Bandingkan skor antar sekolah'],
+  riwayat: ['📂 Riwayat', 'Daftar riwayat analisis sebelumnya dari database']
+};
+
+  var t = titles[menuId] || ['', ''];
+  document.getElementById('pageTitle').textContent = t[0];
+  document.getElementById('pageDesc').textContent = t[1];
+
+  // Render content if needed
+  if (menuId === 'kesimpulan' && currentResult) renderKesimpulan();
+  if (menuId === 'grafik' && currentResult) renderGrafik(currentResult);
+  if (menuId === 'rekomendasi' && currentResult) renderRekomendasi(currentResult);
+  if (menuId === 'riwayat') loadHistory();
+}
+
+// ====== FILE UPLOAD ======
+var drop = document.getElementById("drop");
+var fileInput = document.getElementById("fileInput");
+
+drop.addEventListener("dragover", function(e) { e.preventDefault(); drop.classList.add("drag"); });
+drop.addEventListener("dragleave", function() { drop.classList.remove("drag"); });
+drop.addEventListener("drop", function(e) {
+  e.preventDefault(); drop.classList.remove("drag");
+  if (e.dataTransfer.files.length) setFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener("change", function() { if (fileInput.files.length) setFile(fileInput.files[0]); });
+
+function endsWith(str, suffix) { return str.slice(-suffix.length) === suffix; }
+
+function setFile(f) {
+  if (!f) return;
+  var ok = false;
+  for (var i = 0; i < ALLOWED.length; i++) {
+    if (endsWith(f.name.toLowerCase(), ALLOWED[i])) { ok = true; break; }
+  }
+  if (!ok) { showError("Format tidak didukung. Gunakan .docx, .pdf, .xlsx, atau .xls."); return; }
+  file = f;
+  currentResult = null;
+  document.getElementById("resultsArea").hidden = true;
+  hideError();
+  document.getElementById("dropText").textContent = "📄 " + f.name;
+}
+
+// ====== ANALISIS ======
+document.getElementById("btnAnalyze").addEventListener("click", function() {
+  if (!file) { showError("Pilih file dulu."); return; }
+  var btn = document.getElementById("btnAnalyze");
+  btn.disabled = true;
+  document.getElementById("loading").hidden = false;
+  hideError();
+
+  var fd = new FormData();
+  fd.append("file", file);
+  fetch(API_URL, { method: "POST", body: fd })
+    .then(function(res) {
+      return res.text().then(function(txt) {
+        var data;
+        try { data = JSON.parse(txt); } catch(e) { data = { detail: txt }; }
+        if (!res.ok) throw new Error(data.detail || ("HTTP " + res.status));
+        return data;
+      });
+    })
+    .then(function(data) {
+      currentResult = data;
+      currentTab = "capaian";
+      renderAnalisis();
+    })
+    .catch(function(err) { showError((err && err.message) || "Terjadi kesalahan."); })
+    .then(function() { btn.disabled = false; document.getElementById("loading").hidden = true; });
+});
+
+// ====== RESET ======
+document.getElementById("btnReset").addEventListener("click", function() {
+  file = null; currentResult = null;
+  fileInput.value = "";
+  document.getElementById("resultsArea").hidden = true;
+  hideError();
+  document.getElementById("dropText").textContent = "📄 Seret & letakkan file di sini, atau klik untuk memilih";
+  Object.values(chartInstances).forEach(function(c) { c.destroy(); });
+  chartInstances = {};
+});
+
+// ====== RENDER ANALISIS ======
+function renderAnalisis() {
+  if (!currentResult) return;
+  document.getElementById("resultsArea").hidden = false;
+  document.getElementById("btnExport").style.display = "";
+  document.getElementById("btnPDF").style.display = "";
+  var r = currentResult.ringkasan;
+
+  // Summary cards
+  document.getElementById("cards").innerHTML =
+    '<div class="card"><small>Total Indikator</small><b>' + r.total_indikator + '</b></div>' +
+    '<div class="card"><small>Rata-rata Skor 2025</small><b>' + (r.rata_rata_skor_2025 != null ? r.rata_rata_skor_2025.toFixed(2) : "-") + '</b></div>' +
+    '<div class="card"><small>Indikator Naik</small><b class="naik">' + r.indikator_naik + '</b></div>' +
+    '<div class="card"><small>Indikator Turun</small><b class="turun">' + r.indikator_turun + '</b></div>';
+
+  // Tabs
+  var cats = [
+    { key: "capaian", label: "Capaian", cls: "tab-capaian" },
+    { key: "baik", label: "Baik", cls: "tab-baik" },
+    { key: "sedang", label: "Sedang", cls: "tab-sedang" },
+    { key: "kurang", label: "Kurang", cls: "tab-kurang" },
+   <!-- { key: "kesimpulan", label: "Kesimpulan", cls: "tab-kesimpulan" },-->
+    <!--{ key: "grafik", label: "📊 Grafik", cls: "tab-grafik" } -->
+  ];
+
+  var tabsHtml = "";
+  for (var i = 0; i < cats.length; i++) {
+    var c = cats[i];
+    var count = c.key === "kesimpulan" || c.key === "grafik" ? "" : " (" + (currentResult[c.key] || []).length + ")";
+    tabsHtml += '<button class="tab ' + c.cls + (currentTab === c.key ? " active" : "") +
+      '" onclick="setTab(\'' + c.key + '\')">' + c.label + count + '</button>';
+  }
+  document.getElementById("tabs").innerHTML = tabsHtml;
+
+  renderTabContent();
+}
+
+function setTab(key) {
+  currentTab = key;
+  renderAnalisis();
+}
+
+function renderTabContent() {
+  var tWrap = document.getElementById("tableWrap");
+
+  if (currentTab === "kesimpulan") {
+    tWrap.innerHTML = "";
+    renderKesimpulan();
+    return;
+  }
+  if (currentTab === "grafik") {
+    tWrap.innerHTML = "";
+    renderGrafik(currentResult);
+    return;
+  }
+
+  var rows = currentResult[currentTab] || [];
+  if (rows.length === 0) {
+    tWrap.innerHTML = '<div class="empty">Tidak ada data pada kelompok ini.</div>';
+  } else {
+    var html = '<table><thead><tr><th>No</th><th>Capaian</th><th>Skor 2025</th><th>Definisi</th><th>Perubahan</th></tr></thead><tbody>';
+    for (var j = 0; j < rows.length; j++) html += badgeParent(rows[j]);
+    html += '</tbody></table>';
+    tWrap.innerHTML = html;
+  }
+}
+
+function badgeParent(p) {
+  var html = badgeRow(p, false);
+  if (p.sub_indikator) {
+    for (var i = 0; i < p.sub_indikator.length; i++) html += badgeRow(p.sub_indikator[i], true);
+  }
+  return html;
+}
+
+function badgeRow(row, isChild) {
+  var prefix = isChild ? "↳ " : "";
+  var noTampil = (isChild && (!row.no || row.no === "-")) ? "" : (row.no || "-");
+  var perubahan = "-";
+  if (row.perubahan_skor != null) {
+    if (row.perubahan_skor > 0) perubahan = '<span style="color:#16a34a;font-weight:600">▲ +' + row.perubahan_skor + '</span>';
+    else if (row.perubahan_skor < 0) perubahan = '<span style="color:#dc2626;font-weight:600">▼ ' + row.perubahan_skor + '</span>';
+    else perubahan = '<span style="color:#64748b">0 (tetap)</span>';
+  }
+  return '<tr' + (isChild ? ' class="child-row"' : '') + '>' +
+    '<td>' + noTampil + '</td>' +
+    '<td style="' + (isChild ? 'padding-left:30px;' : 'font-weight:600;') + '">' + prefix + (row.capaian || "-") + '</td>' +
+    '<td>' + (row.skor_2025 != null ? row.skor_2025 : "-") + '</td>' +
+    '<td>' + (row.definisi_capaian || "-") + '</td>' +
+    '<td>' + perubahan + '</td></tr>';
+}
+
+// ====== KESIMPULAN ======
+function renderKesimpulan() {
+  if (!currentResult) return;
+  var kText = currentResult.kesimpulan || "Tidak ada kesimpulan.";
+  document.getElementById("kesimpulanList").innerHTML = '<p class="k-par">' + kText + '</p>';
+
+  // Matriks Prioritas
+  var allItems = [];
+  var kats = ["capaian", "baik", "sedang", "kurang"];
+  for (var c = 0; c < kats.length; c++) {
+    var arr = currentResult[kats[c]] || [];
+    for (var j = 0; j < arr.length; j++) {
+      allItems.push(arr[j]);
+      if (arr[j].sub_indikator) allItems = allItems.concat(arr[j].sub_indikator);
+    }
+  }
+  var validItems = allItems.filter(function(x) { return x.skor_2025 != null; });
+  validItems.sort(function(a, b) { return a.skor_2025 - b.skor_2025; });
+  var top3 = validItems.slice(0, 3);
+
+  var pWrap = document.getElementById("prioritasWrap");
+  if (top3.length > 0) {
+    var pHtml = '<div class="prioritas-wrap"><h3>🚨 Matriks Prioritas Intervensi (3 Skor Terendah)</h3>';
+    for (var k = 0; k < top3.length; k++) {
+      var itm = top3[k];
+      var noTxt = (itm.no && itm.no !== "-") ? "[" + itm.no + "] " : "";
+      var kateg = itm.skor_2025 >= 80 ? "Baik" : (itm.skor_2025 >= 60 ? "Sedang" : "Kurang");
+      pHtml += '<div class="prioritas-item">' +
+        '<div class="prioritas-item-title">' + noTxt + itm.capaian + '</div>' +
+        '<div class="prioritas-item-score">Skor: <b>' + itm.skor_2025.toFixed(2) + '</b> | Kategori: <b>' + kateg + '</b></div></div>';
+    }
+    pHtml += '</div>';
+    pWrap.innerHTML = pHtml;
+  } else {
+    pWrap.innerHTML = "";
+  }
+}
+
+// ====== GRAFIK ======
+function renderGrafik(data) {
+  Object.values(chartInstances).forEach(function(c) { c.destroy(); });
+  chartInstances = {};
+  if (!data) return;
+
+  var tBaik = (data.baik || []).length;
+  var tSedang = (data.sedang || []).length;
+  var tKurang = (data.kurang || []).length;
+
+  // Pie
+  var ctxPie = document.getElementById("chartPie");
+  if (ctxPie) {
+    chartInstances.pie = new Chart(ctxPie, {
+      type: "doughnut",
+      data: { labels: ["Baik", "Sedang", "Kurang"],
+              datasets: [{ data: [tBaik, tSedang, tKurang],
+                           backgroundColor: ["#059669", "#d97706", "#dc2626"], borderWidth: 2, borderColor: "#fff" }] },
+      options: { responsive: true, plugins: { legend: { position: "bottom" } } }
+    });
+  }
+
+  // Bar per indikator
+  var semua = [].concat(data.baik || [], data.sedang || [], data.kurang || []);
+  var labels = [], skors = [], warna = [];
+  for (var i = 0; i < semua.length; i++) {
+    if (semua[i].skor_2025 != null) {
+      var nm = semua[i].capaian;
+      labels.push(nm.length > 35 ? nm.substring(0, 35) + "..." : nm);
+      skors.push(semua[i].skor_2025);
+      warna.push(semua[i].skor_2025 >= 80 ? "#059669" : (semua[i].skor_2025 >= 60 ? "#d97706" : "#dc2626"));
+    }
+  }
+  var ctxBar = document.getElementById("chartBar");
+  if (ctxBar && skors.length > 0) {
+    chartInstances.bar = new Chart(ctxBar, {
+      type: "bar",
+      data: { labels: labels, datasets: [{ label: "Skor 2025", data: skors, backgroundColor: warna, borderRadius: 4 }] },
+      options: { indexAxis: "y", responsive: true, plugins: { legend: { display: false } },
+                 scales: { x: { beginAtZero: true, max: 100, title: { display: true, text: "Skor" } } } }
+    });
+  }
+
+  // Dimensi A-E
+  var dimSum = {A:0, D:0, E:0};
+var dimCnt = {A:0, D:0, E:0};
+
+  for (var j = 0; j < semua.length; j++) {
+    var no = semua[j].no || "";
+    var sk = semua[j].skor_2025;
+    if (sk != null && no.length > 0) {
+      var h = no.charAt(0).toUpperCase();
+      if (dimSum.hasOwnProperty(h)) { dimSum[h] += sk; dimCnt[h]++; }
+    }
+  }
+  var dimLabels = [], dimSkor = [], dimWarna = [];
+  var wDim = {A:"#2563eb", B:"#059669", C:"#d97706", D:"#dc2626", E:"#7c3aed"};
+  for (var d in dimSum) {
+    if (dimCnt[d] > 0) { dimLabels.push("Dimensi " + d); dimSkor.push(Math.round(dimSum[d] / dimCnt[d] * 100) / 100); dimWarna.push(wDim[d]); }
+  }
+  var ctxDim = document.getElementById("chartDimensi");
+  if (ctxDim && dimLabels.length > 0) {
+    chartInstances.dim = new Chart(ctxDim, {
+      type: "bar",
+      data: { labels: dimLabels, datasets: [{ label: "Rata-rata Skor", data: dimSkor, backgroundColor: dimWarna, borderRadius: 6 }] },
+      options: { responsive: true, plugins: { legend: { display: false } },
+                 scales: { y: { beginAtZero: true, max: 100, title: { display: true, text: "Skor" } } } }
+    });
+  }
+}
+
+// ====== REKOMENDASI ======
+function renderRekomendasi(data) {
+  var wrap = document.getElementById("rekomendasiContent");
+  if (!data || !data.kurang || data.kurang.length === 0) {
+    wrap.innerHTML = '<div class="empty">Tidak ada indikator berpredikat Kurang yang memerlukan rekomendasi.</div>';
+    return;
+  }
+
+  wrap.innerHTML = '<div style="text-align:center;padding:20px;color:#64748b;">⏳ Memuat data rekomendasi PBD/ARKAS...</div>';
+
+  // Panggil endpoint /api/recommendations yang sudah ada di main.py
+  fetch("/api/recommendations", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data)
+  })
+  .then(function(res) { return res.json(); })
+  .then(function(resData) {
+    var list = resData.rekomendasi || [];
+    if (list.length === 0) {
+      wrap.innerHTML = '<div class="empty">Tidak ada rekomendasi yang dihasilkan.</div>';
+      return;
+    }
+
+    var html = '<div style="margin-bottom:14px;color:#fde68a;font-size:14px;">' +
+               '💡 Berikut adalah rekomendasi program Benahi PBD beserta Pemetaan Kode Kegiatan ARKAS:</div>';
+
+    for (var i = 0; i < list.length; i++) {
+      var r = list[i];
+      html += '<div class="rekom-item" style="border-left: 5px solid #dc2626;">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;">' +
+          '<span class="rekom-badge kurang">[' + r.kode_indikator + '] SKOR: ' + r.skor + '</span>' +
+          '<span style="background:#0284c7;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:bold;">' +
+            'ARKAS: ' + r.kode_arkas + '</span>' +
+        '</div>' +
+        '<h4 style="margin-top:6px;font-size:15px;">' + r.indikator + '</h4>' +
+        '<p style="margin-top:6px;"><b>🔍 Refleksi Akar Masalah:</b> ' + r.refleksi_akar_masalah + '</p>' +
+        '<p style="margin-top:4px;"><b>🛠️ Program Benahi PBD (' + r.kode_pbd + '):</b> ' + r.kegiatan_pembenahan + '</p>' +
+        '<p style="margin-top:4px;color:#0369a1;"><b>🏫 Kegiatan ARKAS:</b> ' + r.kegiatan_arkas + '</p>' +
+      '</div>';
+    }
+
+    wrap.innerHTML = html;
+  })
+  .catch(function(err) {
+    console.error("Gagal memuat rekomendasi:", err);
+    wrap.innerHTML = '<div class="error">Gagal mengambil data rekomendasi dari server.</div>';
+  });
+}
+
+
+
+// ====== EXPORT EXCEL ======
+document.getElementById("btnExport").addEventListener("click", function() {
+  if (!currentResult) return;
+  var judul = currentResult.judul || "Analisis Rapor Pendidikan";
+  var kes = (currentResult.kesimpulan || "-").replace(/<[^>]+>/g, "");
+  var r = currentResult.ringkasan;
+  var baris = [];
+
+  baris.push("<tr><td colspan='6' style='font-size:14pt;font-weight:bold'>" + judul + "</td></tr>");
+  baris.push("<tr><td colspan='6'></td></tr>");
+  baris.push("<tr><td colspan='6'><b>KESIMPULAN</b><br/>" + kes + "</td></tr>");
+  baris.push("<tr><td colspan='6'></td></tr>");
+  baris.push("<tr><td colspan='6'><b>RINGKASAN</b> | Total: " + r.total_indikator + " | Rata-rata: " + (r.rata_rata_skor_2025 || "-") + " | Naik: " + r.indikator_naik + " | Turun: " + r.indikator_turun + "</td></tr>");
+  baris.push("<tr><td colspan='6'></td></tr>");
+
+  var groups = [["CAPAIAN", "capaian"], ["BAIK", "baik"], ["SEDANG", "sedang"], ["KURANG", "kurang"]];
+  for (var g = 0; g < groups.length; g++) {
+    var label = groups[g][0], key = groups[g][1], items = currentResult[key] || [];
+    baris.push("<tr><td colspan='6' style='font-weight:bold;background:#f1f5f9'>KELOMPOK " + label + " (" + items.length + ")</td></tr>");
+    baris.push("<tr><td><b>No</b></td><td><b>Capaian</b></td><td><b>Skor 2025</b></td><td><b>Definisi</b></td><td><b>Perubahan</b></td><td><b>Kategori</b></td></tr>");
+    if (items.length === 0) baris.push("<tr><td colspan='6'>Tidak ada data.</td></tr>");
+    for (var i = 0; i < items.length; i++) {
+      baris.push(expRow(items[i], label, false));
+      var subs = items[i].sub_indikator || [];
+      for (var s = 0; s < subs.length; s++) baris.push(expRow(subs[s], "", true));
+    }
+  }
+
+  var html = "<html xmlns:o='urn:schemas-microsoft-com:office:office'><head><meta charset='utf-8'></head><body><table border='1'>" + baris.join("") + "</table></body></html>";
+  var blob = new Blob(["\ufeff" + html], { type: "application/vnd.ms-excel;charset=utf-8" });
+  var link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = judul.replace(/[\\/:*?"<>|]/g, "_") + ".xls";
+  document.body.appendChild(link); link.click(); document.body.removeChild(link);
+});
+
+function expRow(item, kategori, isChild) {
+  var no = item.no || "-";
+  var nama = (isChild ? "↳ " : "") + (item.capaian || "-");
+  var skor = item.skor_2025 != null ? item.skor_2025 : "-";
+  var def = item.definisi_capaian || "-";
+  var per = item.perubahan_skor != null ? (item.perubahan_skor > 0 ? "+" + item.perubahan_skor : String(item.perubahan_skor)) : "-";
+  return "<tr><td>" + no + "</td><td>" + nama + "</td><td>" + skor + "</td><td>" + def + "</td><td>" + per + "</td><td>" + kategori + "</td></tr>";
+}
+
+// ====== EXPORT PDF ======
+document.getElementById("btnPDF").addEventListener("click", function() {
+  if (!currentResult) { alert("Belum ada data. Upload file dulu!"); return; }
+  fetch("/api/export-pdf", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(currentResult) })
+    .then(function(resp) {
+      if (!resp.ok) return resp.json().then(function(e) { throw new Error(e.detail || "Unknown error"); });
+      return resp.blob();
+    })
+    .then(function(blob) {
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement("a"); a.href = url; a.download = "analisis_rapor_pendidikan.pdf"; a.click();
+      URL.revokeObjectURL(url);
+    })
+    .catch(function(e) { alert("Gagal: " + e.message); });
+});
+
+// ====== ERROR ======
+function showError(msg) { var e = document.getElementById("error"); e.textContent = msg; e.hidden = false; }
+function hideError() { document.getElementById("error").hidden = true; }
+
+/* ============ PERBANDINGAN MULTI-SEKOLAH ============ */
+(function() {
+  var fileMulti = document.getElementById("fileMulti");
+  var dropMulti = document.getElementById("dropMulti");
+  var btnCompare = document.getElementById("btnCompare");
+  var compareResult = document.getElementById("compareResult");
+
+  if (!dropMulti || !fileMulti || !btnCompare) return;
+
+  // Klik area → buka file picker
+  dropMulti.addEventListener("click", function() {
+    fileMulti.click();
+  });
+
+  // Drag & Drop
+  dropMulti.addEventListener("dragover", function(e) {
+    e.preventDefault(); e.stopPropagation();
+    dropMulti.classList.add("drag");
+  });
+  dropMulti.addEventListener("dragleave", function(e) {
+    e.preventDefault(); e.stopPropagation();
+    dropMulti.classList.remove("drag");
+  });
+  dropMulti.addEventListener("drop", function(e) {
+    e.preventDefault(); e.stopPropagation();
+    dropMulti.classList.remove("drag");
+    fileMulti.files = e.dataTransfer.files;
+    var txt = dropMulti.querySelector("p");
+    if (txt) txt.textContent = e.dataTransfer.files.length + " file siap dibandingkan";
+  });
+
+  // Pilih file
+  fileMulti.addEventListener("change", function() {
+    var n = fileMulti.files.length;
+    var txt = dropMulti.querySelector("p");
+    if (txt) txt.textContent = n > 0 ? n + " file siap dibandingkan" : "📄 Seret & letakkan 2+ file untuk perbandingan";
+  });
+
+  // Tombol Bandingkan
+  btnCompare.addEventListener("click", function() {
+    if (!fileMulti.files || fileMulti.files.length < 2) {
+      alert("Pilih minimal 2 file!");
+      return;
+    }
+    btnCompare.disabled = true;
+    btnCompare.textContent = "⏳ Memproses...";
+    var fd = new FormData();
+    for (var i = 0; i < fileMulti.files.length; i++) {
+      fd.append("files", fileMulti.files[i]);
+    }
+    fetch("/api/compare", { method: "POST", body: fd })
+      .then(function(res) {
+        return res.json().then(function(data) {
+          if (!res.ok) throw new Error(data.detail || "Gagal");
+          return data;
+        });
+      })
+      .then(function(data) {
+        renderPerbandingan(data);
+      })
+      .catch(function(e) {
+        compareResult.innerHTML = '<div class="error">Gagal: ' + e.message + '</div>';
+      })
+      .then(function() {
+        btnCompare.disabled = false;
+        btnCompare.textContent = "🔍 Bandingkan Sekarang";
+      });
+  });
+})();
+
+function renderPerbandingan(data) {
+  var wrap = document.getElementById("compareResult");
+  if (!data || !data.length) {
+    wrap.innerHTML = '<div class="empty">Tidak ada data.</div>';
+    return;
+  }
+  var sorted = data.slice().sort(function(a, b) {
+    return (a.avg_score || 0) - (b.avg_score || 0);
+  });
+  var lowest3 = sorted.slice(0, 3).map(function(x) { return x.sekolah; });
+  var highest3 = sorted.slice(-3).map(function(x) { return x.sekolah; });
+
+  var html = '<div class="compare-summary">' +
+    '<p><b>' + data.length + '</b> sekolah dianalisis. ' +
+    'Tertinggi: <b style="color:#16a34a">' + sorted[sorted.length-1].avg_score.toFixed(1) + '</b> (' + sorted[sorted.length-1].sekolah + '), ' +
+    'Terendah: <b style="color:#dc2626">' + sorted[0].avg_score.toFixed(1) + '</b> (' + sorted[0].sekolah + ')</p></div>';
+
+  html += '<table><thead><tr><th>Ranking</th><th>Nama Sekolah</th><th>Rata-rata Skor</th></tr></thead><tbody>';
+  for (var i = sorted.length - 1; i >= 0; i--) {
+    var s = sorted[i];
+    var rank = sorted.length - i;
+    var rowStyle = "", nameStyle = "", scoreStyle = "";
+    if (lowest3.indexOf(s.sekolah) !== -1) {
+      rowStyle = ' style="background:#fee2e2;"';
+      nameStyle = ' style="color:#991b1b;font-weight:700;"';
+      scoreStyle = ' style="color:#dc2626;font-weight:700;"';
+    } else if (highest3.indexOf(s.sekolah) !== -1) {
+      rowStyle = ' style="background:#dcfce7;"';
+      nameStyle = ' style="color:#166534;font-weight:700;"';
+      scoreStyle = ' style="color:#16a34a;font-weight:700;"';
+    }
+    html += '<tr' + rowStyle + '><td>' + rank + '</td><td' + nameStyle + '>' + s.sekolah + '</td><td' + scoreStyle + '>' + s.avg_score.toFixed(1) + '</td></tr>';
+  }
+  html += '</tbody></table>';
+  html += '<div style="margin-top:10px;font-size:13px;"><span style="background:#fee2e2;padding:3px 10px;border-radius:4px;margin-right:12px;">🔴 3 Terendah</span><span style="background:#dcfce7;padding:3px 10px;border-radius:4px;">🟢 3 Tertinggi</span></div>';
+  html += '<div style="margin-top:16px;background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:16px;"><h3 style="font-size:14px;color:#7c2d12;margin-bottom:10px;">📊 Grafik Perbandingan</h3><canvas id="chartCompare" style="max-height:300px;"></canvas></div>';
+  wrap.innerHTML = html;
+
+  // Render chart
+  var labels = [], scores = [], colors = [];
+  for (var j = 0; j < sorted.length; j++) {
+    var nm = sorted[j].sekolah;
+    labels.push(nm.length > 25 ? nm.substring(0, 25) + "..." : nm);
+    scores.push(sorted[j].avg_score);
+    if (lowest3.indexOf(nm) !== -1) colors.push("#ef4444");
+    else if (highest3.indexOf(nm) !== -1) colors.push("#22c55e");
+    else colors.push("#94a3b8");
+  }
+  var ctx = document.getElementById("chartCompare");
+  if (ctx) {
+    new Chart(ctx, {
+      type: "bar",
+      data: { labels: labels, datasets: [{ label: "Rata-rata Skor", data: scores, backgroundColor: colors, borderRadius: 4 }] },
+      options: { indexAxis: "y", responsive: true, plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, max: 100, title: { display: true, text: "Skor" } } } }
+    });
+  }
+}
+
+function logout() {
+  if (confirm("Apakah Anda yakin ingin keluar dari aplikasi?")) {
+    // 1. Bersihkan data penyimpanan sementara
+    localStorage.clear();
+    sessionStorage.clear();
+    
+    // 2. Kembalikan halaman ke tampilan paling awal
+    window.location.href = "/";
+  }
+}
+// ====== EXPORT REKOMENDASI EXCEL & PDF ======
+
+function exportRekomendasiExcel() {
+  if (!currentResult) {
+    alert("Belum ada data analisis. Silakan analisis file terlebih dahulu!");
+    return;
+  }
+  
+  fetch("/api/export-recommendations-excel", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(currentResult)
+  })
+  .then(function(resp) {
+    if (!resp.ok) throw new Error("Gagal mengeksport data Excel.");
+    return resp.blob();
+  })
+  .then(function(blob) {
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = "Rekomendasi_PBD_ARKAS.xlsx";
+    a.click();
+    URL.revokeObjectURL(url);
+  })
+  .catch(function(err) {
+    alert("Error: " + err.message);
+  });
+}
+
+function exportRekomendasiPDF() {
+  if (!currentResult) {
+    alert("Belum ada data analisis. Silakan analisis file terlebih dahulu!");
+    return;
+  }
+  
+  fetch("/api/export-recommendations-pdf", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(currentResult)
+  })
+  .then(function(resp) {
+    if (!resp.ok) throw new Error("Gagal mengeksport data PDF.");
+    return resp.blob();
+  })
+  .then(function(blob) {
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = "Rekomendasi_PBD_ARKAS.pdf";
+    a.click();
+    URL.revokeObjectURL(url);
+  })
+  .catch(function(err) {
+    alert("Error: " + err.message);
+  });
+}
+</script>
+</body>
+</html>
